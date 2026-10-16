@@ -61,7 +61,7 @@ set "CERT_VALIDITY_YEARS=10"
 set "CERT_THUMBPRINT="
 
 :: RFC 3161 timestamp server URL.  Leave blank to skip timestamping.
-set "TIMESTAMP_SERVER=http://timestamp.digicert.com"
+set "TIMESTAMP_SERVER=https://timestamp.digicert.com"
 
 :: ============================================================
 ::  END OF USER CONFIGURATION — do not edit below this line
@@ -226,8 +226,17 @@ goto RUN_BUILD
 echo.
 echo  Launching PowerShell...
 echo.
-powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "%PS_CMD%"
+
+:: Write the command to a temp .ps1 file and invoke via -File.
+:: This avoids -Command quoting issues when AppName or paths contain
+:: special characters such as apostrophes, ampersands or parentheses.
+set "TMP_PS=%TEMP%\BuildPackage_run_%RANDOM%.ps1"
+echo %PS_CMD% > "%TMP_PS%"
+
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%TMP_PS%"
 set "EXIT_CODE=%ERRORLEVEL%"
+del "%TMP_PS%" 2>nul
+
 echo.
 if "%EXIT_CODE%"=="0" (
     echo  Build completed successfully.

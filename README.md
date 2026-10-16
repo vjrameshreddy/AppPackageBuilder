@@ -19,6 +19,7 @@ AppPackageBuilder\                          ← repo / working folder
 │
 │  ── Documentation ──
 ├── README.md                               ✅ KEEP  This file
+├── RELEASE-NOTES.md                        ✅ KEEP  Version history, security assessment, change log
 ├── Build-IExpressPackage-Usage.md          ✅ KEEP  Full parameter reference and examples
 │
 │  ── Your application payload ──
@@ -76,6 +77,7 @@ AppPackageBuilder\
 ├── Build-IExpressPackage.ps1      # Main builder script
 ├── Build-Package.bat              # Interactive launcher (edit config, pick build type)
 ├── Build-IExpressPackage-Usage.md # Full parameter reference and examples
+├── RELEASE-NOTES.md               # Version history, security assessment, change log
 ├── README.md                      # This file
 ├── .gitignore                     # Excludes Package\ from source control
 ├── Payload\                       # Application files to package
@@ -147,7 +149,7 @@ The Setup EXE appears in `Package\Output\` when the build completes.
     -SignAllExes `
     -CertSubject       'CN=Illumio Tools Code Signing (Self-Signed)' `
     -CertValidityYears 10 `
-    -TimestampServer   'http://timestamp.digicert.com'
+    -TimestampServer   'https://timestamp.digicert.com'
 ```
 
 ---
@@ -239,6 +241,8 @@ To **remove** the certificate: open `certlm.msc`, find the subject under both **
 | `-TimestampServer` | *(none)* | RFC 3161 timestamp server URL |
 
 See [`Build-IExpressPackage-Usage.md`](Build-IExpressPackage-Usage.md) for the full reference, all examples, and troubleshooting.
+
+See [`RELEASE-NOTES.md`](RELEASE-NOTES.md) for the full version history, security assessment, and change log.
 
 ---
 

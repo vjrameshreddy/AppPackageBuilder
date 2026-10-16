@@ -69,7 +69,7 @@
     -SignAllExes `
     -CertSubject       'CN=Illumio Tools Code Signing (Self-Signed)' `
     -CertValidityYears 10 `
-    -TimestampServer   'http://timestamp.digicert.com'
+    -TimestampServer   'https://timestamp.digicert.com'
 ```
 
 This creates a self-signed code-signing certificate (10-year validity), signs
@@ -175,7 +175,7 @@ Setup EXE, and imports it automatically on the target machine when Setup runs.
 | `-CertSubject` | `string` | `CN=<Publisher> Code Signing (Self-Signed)` | Subject of the code-signing certificate to find or create. |
 | `-CertThumbprint` | `string` | *(none)* | Thumbprint of an existing certificate in `Cert:\CurrentUser\My`. When provided, the script uses that certificate instead of finding or creating one by subject. |
 | `-CertValidityYears` | `int` | `10` | Validity period in years for a newly created self-signed certificate. Ignored when an existing certificate is found or `-CertThumbprint` is supplied. |
-| `-TimestampServer` | `string` | *(none)* | HTTPS URL of an RFC 3161 timestamp server (e.g. `http://timestamp.digicert.com`). If omitted, no timestamp is added to the signature. |
+| `-TimestampServer` | `string` | *(none)* | HTTPS URL of an RFC 3161 timestamp server (e.g. `https://timestamp.digicert.com`). If omitted, no timestamp is added to the signature. |
 
 ---
 
@@ -350,7 +350,7 @@ Press **4** to review all settings before building:
  CERT_VALIDITY_YEARS  : 10
  CERT_THUMBPRINT      :
                          (auto-find or create)
- TIMESTAMP_SERVER     : http://timestamp.digicert.com
+ TIMESTAMP_SERVER     : https://timestamp.digicert.com
 ============================================================
 ```
 
@@ -402,7 +402,7 @@ open `Build-Package.bat` in any text editor and change the values in the
     -SignAllExes `
     -CertSubject      'CN=Illumio Tools Code Signing (Self-Signed)' `
     -CertValidityYears 10 `
-    -TimestampServer  http://timestamp.digicert.com
+    -TimestampServer  https://timestamp.digicert.com
 ```
 
 ### Use an existing certificate by thumbprint

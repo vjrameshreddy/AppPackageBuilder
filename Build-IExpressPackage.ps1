@@ -112,7 +112,7 @@
         -SignAllExes `
         -CertSubject       'CN=Illumio Tools Code Signing (Self-Signed)' `
         -CertValidityYears 10 `
-        -TimestampServer   'http://timestamp.digicert.com'
+        -TimestampServer   'https://timestamp.digicert.com'
 
 .EXAMPLE
     # Use an existing cert by thumbprint, custom output folder
@@ -139,18 +139,30 @@ param(
     [ValidateNotNullOrEmpty()]
     [string] $AppName,
 
+    # File name only — no path separators allowed (prevents path traversal)
     [Parameter(Mandatory)]
     [ValidateNotNullOrEmpty()]
+    [ValidateScript({
+        if ($_ -match '[/\\]') { throw "MainExe must be a file name, not a path. Remove any directory separators." }
+        $true
+    })]
     [string] $MainExe,
 
     # --- Optional general ------------------------------------------------
+    # Version: semver-like pattern guards against injection into generated scripts
+    [ValidatePattern('^\d+(\.\d+){0,3}$')]
     [string] $Version   = '1.0.0',
     [string] $Publisher = '',
 
     [string] $OutputDir = '',
     [string] $WorkDir   = '',
 
-    [ValidatePattern('\.exe$')]
+    # File name only — no path separators allowed
+    [ValidateScript({
+        if ($_ -and $_ -match '[/\\]') { throw "SetupName must be a file name, not a path. Remove any directory separators." }
+        if ($_ -and $_ -notmatch '\.exe$') { throw "SetupName must end in .exe" }
+        $true
+    })]
     [string] $SetupName = '',
 
     [ValidateSet('Machine', 'User')]
@@ -164,7 +176,14 @@ param(
     [switch] $SignAllExes,
     [string] $CertSubject       = '',
     [string] $CertThumbprint    = '',
+    # Validity bounded to 1–30 years; 0 or negative creates an already-expired cert
+    [ValidateRange(1, 30)]
     [int]    $CertValidityYears = 10,
+    # Timestamp server must use HTTPS to protect RFC 3161 response integrity
+    [ValidateScript({
+        if ($_ -and $_ -notmatch '^https://') { throw "TimestampServer must use HTTPS (got: '$_'). Example: https://timestamp.digicert.com" }
+        $true
+    })]
     [string] $TimestampServer   = ''
 )
 
@@ -199,11 +218,36 @@ if (-not $SetupName) { $SetupName = "${SafeName}_Setup.exe" }
 # Resolve PayloadDir to absolute path
 $PayloadDir = (Resolve-Path $PayloadDir).Path
 
+# Resolve WorkDir/OutputDir to absolute paths for comparison
+$WorkDir   = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($WorkDir)
+$OutputDir = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($OutputDir)
+
+# Safety: WorkDir must not be the same as PayloadDir (would wipe the payload on clean)
+$WorkDirResolved   = $WorkDir.TrimEnd('\','/')
+$OutputDirResolved = $OutputDir.TrimEnd('\','/')
+$PayloadDirResolved = $PayloadDir.TrimEnd('\','/')
+if ($WorkDirResolved -eq $PayloadDirResolved) {
+    throw "WorkDir cannot be the same as PayloadDir ('$PayloadDir'). Choose a different temporary folder."
+}
+if ($OutputDirResolved -eq $PayloadDirResolved) {
+    throw "OutputDir cannot be the same as PayloadDir ('$PayloadDir'). Choose a different output folder."
+}
+if ($WorkDirResolved -eq $OutputDirResolved) {
+    throw "WorkDir and OutputDir cannot be the same folder. They must be distinct."
+}
+
+# Escape single quotes in string values that are embedded into generated PS script constants.
+# A bare apostrophe inside a single-quoted PS string terminates it early.
+$AppNameEsc    = $AppName    -replace "'", "''"
+$PublisherEsc  = $Publisher  -replace "'", "''"
+$CertSubjTemp  = ''   # computed after default logic below
+
 # Certificate subject default
 if ($Sign -and -not $CertSubject -and -not $CertThumbprint) {
     $subjectPublisher = if ($Publisher) { $Publisher } else { $SafeName }
     $CertSubject = "CN=$subjectPublisher Code Signing (Self-Signed)"
 }
+$CertSubjEsc = $CertSubject -replace "'", "''"
 
 # Cert file name derived from setup name (swap .exe -> .cer)
 $CertFileName = [System.IO.Path]::ChangeExtension($SetupName, '.cer')
@@ -376,9 +420,9 @@ $u = [System.Collections.Generic.List[string]]::new()
 $u.Add('$ErrorActionPreference = ' + "'Stop'")
 $u.Add('')
 $u.Add('# ---- Embedded constants ----')
-$u.Add('$AppName       = ' + "'$AppName'")
+$u.Add('$AppName       = ' + "'$AppNameEsc'")
 $u.Add('$SafeName      = ' + "'$SafeName'")
-$u.Add('$CertSubject   = ' + "'$CertSubject'")
+$u.Add('$CertSubject   = ' + "'$CertSubjEsc'")
 $u.Add('$InstallCert   = ' + $installCertStr)
 $u.Add('$InstallScope  = ' + "'$InstallScope'")
 $u.Add('')
@@ -490,7 +534,8 @@ $u.Add('    exit 1')
 $u.Add('}')
 $u.Add('finally {')
 $u.Add('    # ---- Deferred self-deletion of SupportDir ----')
-$u.Add("    `$tmpScript = Join-Path `$env:TEMP '${SafeName}_uninstall_cleanup.ps1'")
+$u.Add('    # Use PID in the temp script name to avoid predictable-name TOCTOU attacks')
+$u.Add("    `$tmpScript = Join-Path `$env:TEMP ('${SafeName}_uninstall_cleanup_' + `$PID + '.ps1')")
 $u.Add('    if (Test-Path -LiteralPath $SupportDir) {')
 $u.Add('        try {')
 $u.Add("            `$cleanup = `"Start-Sleep 3; Remove-Item -LiteralPath '`$SupportDir' -Recurse -Force -ErrorAction SilentlyContinue`"")
@@ -528,11 +573,11 @@ $i = [System.Collections.Generic.List[string]]::new()
 $i.Add('$ErrorActionPreference = ' + "'Stop'")
 $i.Add('')
 $i.Add('# ---- Embedded constants ----')
-$i.Add('$AppName           = ' + "'$AppName'")
+$i.Add('$AppName           = ' + "'$AppNameEsc'")
 $i.Add('$SafeName          = ' + "'$SafeName'")
 $i.Add('$MainExe           = ' + "'$MainExe'")
 $i.Add('$Version           = ' + "'$Version'")
-$i.Add('$Publisher         = ' + "'$Publisher'")
+$i.Add('$Publisher         = ' + "'$PublisherEsc'")
 $i.Add('$InstallScope      = ' + "'$InstallScope'")
 $i.Add('$NoDesktopShortcut = ' + $noDesktopStr)
 $i.Add('$InstallCert       = ' + $installCertStr)
@@ -747,7 +792,7 @@ $ib.Add('')
 $ib.Add('set "LOG=%TEMP%\' + $logBaseName + '.log"')
 $ib.Add('')
 $ib.Add('echo ======================================== > "%LOG%"')
-$ib.Add('echo ' + $AppName + ' Installation Log >> "%LOG%"')
+$ib.Add('echo ' + ($AppName -replace '[&<>^|]', '') + ' Installation Log >> "%LOG%"')
 $ib.Add('echo Started: %DATE% %TIME% >> "%LOG%"')
 $ib.Add('echo Script directory: %~dp0 >> "%LOG%"')
 $ib.Add('echo ======================================== >> "%LOG%"')
