@@ -16,7 +16,43 @@
     -Version     1.0.0
 ```
 
-Output: `Package\Output\Stale_VEN_Reports_Generation_Utility_Setup.exe`
+**Console output:**
+
+```
+========================================================
+  Build-IExpressPackage  -  Stale VEN Reports Generation Utility
+  Version   : 1.0.0
+  Publisher : Illumio Tools
+  Scope     : Machine
+  Signing   : no
+========================================================
+
+  Staging payload...
+  Creating payload.zip...
+  [OK]  payload.zip verified (contains stale_ven_gui.exe)
+  Generating Uninstall.ps1...
+  [OK]  Uninstall.ps1 written
+  [OK]  Uninstall.bat written
+  Generating Install.ps1...
+  [OK]  Install.ps1 written
+  Generating Install.bat...
+  [OK]  Install.bat written
+  Generating IExpress SED...
+  [OK]  SED written: C:\...\Package\Build\Stale_VEN_Reports_Generation_Utility.SED
+  Running iexpress.exe...
+  C:\WINDOWS\System32\iexpress.exe /N /Q "C:\...\Package\Build\Stale_VEN_Reports_Generation_Utility.SED"
+  [OK]  Setup EXE created: C:\...\Package\Output\Stale_VEN_Reports_Generation_Utility_Setup.exe  (17.26 MB)
+
+========================================================
+ BUILD COMPLETE
+========================================================
+  App       : Stale VEN Reports Generation Utility v1.0.0
+  Setup EXE : C:\...\Package\Output\Stale_VEN_Reports_Generation_Utility_Setup.exe
+  Size      : 17.26 MB
+========================================================
+
+  WorkDir cleaned up.
+```
 
 ---
 
@@ -24,17 +60,81 @@ Output: `Package\Output\Stale_VEN_Reports_Generation_Utility_Setup.exe`
 
 ```powershell
 .\Build-IExpressPackage.ps1 `
-    -PayloadDir  .\Payload `
-    -AppName     'Stale VEN Reports Generation Utility' `
-    -MainExe     stale_ven_gui.exe `
-    -Publisher   Illumio Tools `
-    -Version     1.0.0 `
-    -Sign
+    -PayloadDir        .\Payload `
+    -AppName           'Stale VEN Reports Generation Utility' `
+    -MainExe           stale_ven_gui.exe `
+    -Publisher         'Illumio Tools' `
+    -Version           1.0.0 `
+    -Sign `
+    -SignAllExes `
+    -CertSubject       'CN=Illumio Tools Code Signing (Self-Signed)' `
+    -CertValidityYears 10 `
+    -TimestampServer   'http://timestamp.digicert.com'
 ```
 
 This creates a self-signed code-signing certificate (10-year validity), signs
-`stale_ven_gui.exe` and the final `Setup.exe`, packs the certificate into the
+all payload exes and the final `Setup.exe`, packs the certificate into the
 Setup EXE, and imports it automatically on the target machine when Setup runs.
+
+**Console output:**
+
+```
+========================================================
+  Build-IExpressPackage  -  Stale VEN Reports Generation Utility
+  Version   : 1.0.0
+  Publisher : Illumio Tools
+  Scope     : Machine
+  Signing   : YES
+========================================================
+
+  Resolving code-signing certificate...
+  [OK]  Certificate : CN=Illumio Tools Code Signing (Self-Signed)
+  [OK]  Thumbprint  : 618B8235E395A2FD205FC71B64AC71938B17A685
+  [OK]  Expires     : 2036-10-15
+  [OK]  Certificate exported: C:\...\Package\Output\Stale_VEN_Reports_Generation_Utility_Setup.cer
+  Staging payload...
+    Signing: stale_ven_cli.exe
+  [OK]    stale_ven_cli.exe -> UnknownError
+    Signing: stale_ven_gui.exe
+  [OK]    stale_ven_gui.exe -> UnknownError
+  Creating payload.zip...
+  [OK]  payload.zip verified (contains stale_ven_gui.exe)
+  Generating Uninstall.ps1...
+  [OK]  Uninstall.ps1 written
+  [OK]  Uninstall.bat written
+  Generating Install.ps1...
+  [OK]  Install.ps1 written
+  Generating Install.bat...
+  [OK]  Install.bat written
+  Generating IExpress SED...
+  [OK]  SED written: C:\...\Package\Build\Stale_VEN_Reports_Generation_Utility.SED
+  Running iexpress.exe...
+  C:\WINDOWS\System32\iexpress.exe /N /Q "C:\...\Package\Build\Stale_VEN_Reports_Generation_Utility.SED"
+  [OK]  Setup EXE created: C:\...\Package\Output\Stale_VEN_Reports_Generation_Utility_Setup.exe  (17.27 MB)
+  Signing Setup EXE...
+  [OK]  Setup EXE signed -> UnknownError
+  [OK]  Trust-Certificate.ps1 written: C:\...\Package\Output\Trust-Certificate.ps1
+
+  [WARN] This certificate is self-signed and intended for internal testing only.
+  [WARN] SmartScreen may still warn on first run (unknown publisher reputation).
+  [WARN] For production, use a certificate from a trusted CA via -CertThumbprint.
+
+========================================================
+ BUILD COMPLETE
+========================================================
+  App       : Stale VEN Reports Generation Utility v1.0.0
+  Setup EXE : C:\...\Package\Output\Stale_VEN_Reports_Generation_Utility_Setup.exe
+  Size      : 17.27 MB
+  Cert      : C:\...\Package\Output\Stale_VEN_Reports_Generation_Utility_Setup.cer
+  Trust     : C:\...\Package\Output\Trust-Certificate.ps1
+  Thumbprint: 618B8235E395A2FD205FC71B64AC71938B17A685
+  Expires   : 2036-10-15
+========================================================
+
+  WorkDir cleaned up.
+```
+
+> **`UnknownError` on signing steps** is expected — see [Trusting the certificate](#trusting-the-certificate-on-a-target-machine).
 
 ---
 
@@ -154,6 +254,26 @@ Triggered from:
       from Trusted Root Certification Authorities and Trusted Publishers."
 ```
 
+**Console output (interactive uninstall):**
+
+```
+This will uninstall Stale VEN Reports Generation Utility.
+Continue? [Y/N]: Y
+Uninstalling Stale VEN Reports Generation Utility...
+  Removed: C:\Program Files\Stale_VEN_Reports_Generation_Utility
+  Removed: C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Stale VEN Reports Generation Utility
+  Removed: C:\Users\Public\Desktop\Stale VEN Reports Generation Utility.lnk
+  Removed registry key
+
+Stale VEN Reports Generation Utility has been uninstalled.
+
+WARNING: The code-signing certificate was NOT removed automatically.
+         It may be shared with other software from the same publisher.
+         To remove it, open certlm.msc and delete 'CN=Illumio Tools Code Signing (Self-Signed)'
+         from:  Trusted Root Certification Authorities
+           and: Trusted Publishers
+```
+
 ---
 
 ## Output files in `OutputDir`
@@ -179,6 +299,65 @@ Triggered from:
 | Status after signing | `Valid` (chain trusted) or `UnknownError` (self-signed root not yet imported). Both are acceptable during build. Any other status fails the build. |
 | SmartScreen | Even with the cert imported, SmartScreen may warn on first run if the publisher has no reputation. For production, use a certificate from a trusted CA with `-CertThumbprint`. |
 | Cert not removed on uninstall | The cert may be shared with other apps from the same publisher. A manual removal notice is printed instead. |
+
+---
+
+## Using Build-Package.bat (interactive launcher)
+
+Double-click `Build-Package.bat` or run it in a terminal. The menu appears:
+
+```
+========================================================
+ Build-Package  --  Stale VEN Reports Generation Utility  v1.0.0
+ Publisher : Illumio Tools
+========================================================
+
+  [1]  Unsigned build
+       Output: Stale VEN Reports Generation Utility Setup EXE, no signing
+
+  [2]  Signed build  (sign MainExe only)
+       Creates / reuses self-signed cert, signs stale_ven_gui.exe
+       and Setup EXE; cert auto-trusted on install
+
+  [3]  Signed build  (sign ALL exes in payload)
+       Same as [2] but signs every .exe in .\Payload
+
+  [4]  Show current configuration
+
+  [Q]  Quit
+
+  Enter choice [1/2/3/4/Q]:
+```
+
+Press **4** to review all settings before building:
+
+```
+============================================================
+ Current configuration
+============================================================
+ PAYLOAD_DIR          : .\Payload
+ APP_NAME             : Stale VEN Reports Generation Utility
+ MAIN_EXE             : stale_ven_gui.exe
+ VERSION              : 1.0.0
+ PUBLISHER            : Illumio Tools
+ OUTPUT_DIR           :
+                         (default: Package\Output)
+ WORK_DIR             :
+                         (default: Package\Build)
+ NO_DESKTOP_SHORTCUT  : 0
+ KEEP_WORK_FILES      : 0
+ CERT_SUBJECT         : CN=Illumio Tools Code Signing (Self-Signed)
+ CERT_VALIDITY_YEARS  : 10
+ CERT_THUMBPRINT      :
+                         (auto-find or create)
+ TIMESTAMP_SERVER     : http://timestamp.digicert.com
+============================================================
+```
+
+After each build completes the menu reappears, so you can run a second build
+with a different option without restarting.  To customise for a different app,
+open `Build-Package.bat` in any text editor and change the values in the
+**USER CONFIGURATION** section at the top.
 
 ---
 
