@@ -25,12 +25,37 @@ set REPORT_DATE=
 
 :: ─────────────────────────────────────────────────────────────────────────────
 
-:: Build the dated sub-folder name (DD-Month-YYYY) from REPORT_DATE if set,
-:: or from today's date if not.  Uses PowerShell for locale-independent formatting.
+:: Security: DAYS and REPORT_DATE are expanded into command lines below, so accept
+:: only digits / YYYY-MM-DD (allow-list) and refuse anything else before it is used.
+echo %DAYS%| findstr /R /X "[0-9][0-9]*" >nul
+if errorlevel 1 (
+    echo ERROR: DAYS must be a whole number, e.g. 60.
+    pause
+    exit /b 1
+)
 if not "%REPORT_DATE%"=="" (
-    for /f %%i in ('powershell -NoProfile -Command "([datetime]'%REPORT_DATE%').ToString('dd-MMMM-yyyy')"') do set RUN_DATE=%%i
+    echo %REPORT_DATE%| findstr /R /X "[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]" >nul
+    if errorlevel 1 (
+        echo ERROR: REPORT_DATE must be blank or in YYYY-MM-DD format, e.g. 2026-07-21.
+        pause
+        exit /b 1
+    )
+)
+
+:: Build the dated sub-folder name (DD-Month-YYYY) from REPORT_DATE if set,
+:: or from today's date if not.  PowerShell reads REPORT_DATE from the environment
+:: ($env:REPORT_DATE) instead of having it pasted into the command text, and uses the
+:: invariant culture so the month name always matches the tool's file names.
+set RUN_DATE=
+if not "%REPORT_DATE%"=="" (
+    for /f "usebackq delims=" %%i in (`powershell -NoProfile -Command "try { [datetime]::ParseExact($env:REPORT_DATE,'yyyy-MM-dd',[Globalization.CultureInfo]::InvariantCulture).ToString('dd-MMMM-yyyy',[Globalization.CultureInfo]::InvariantCulture) } catch { }"`) do set RUN_DATE=%%i
+    if not defined RUN_DATE (
+        echo ERROR: REPORT_DATE is not a valid calendar date: %REPORT_DATE%
+        pause
+        exit /b 1
+    )
 ) else (
-    for /f %%i in ('powershell -NoProfile -Command "Get-Date -Format dd-MMMM-yyyy"') do set RUN_DATE=%%i
+    for /f "usebackq delims=" %%i in (`powershell -NoProfile -Command "(Get-Date).ToString('dd-MMMM-yyyy',[Globalization.CultureInfo]::InvariantCulture)"`) do set RUN_DATE=%%i
 )
 set OUT_DIR=%BASE_DIR%\%RUN_DATE%
 
@@ -57,7 +82,8 @@ if not exist "%INPUT_FILE%" (
 :: Basic guardrail: reject previously generated batch/master CSVs instead of the
 :: original PCE workload export. Those files only contain href,hostname,TMP and
 :: will fail stale-heartbeat processing.
-powershell -NoProfile -Command "$headers = (Get-Content -Path '%INPUT_FILE%' -TotalCount 1); if ($headers -match '^(?:""|)?href(?:""|)?\s*,\s*(?:""|)?hostname(?:""|)?\s*,\s*(?:""|)?TMP(?:""|)?$') { exit 2 } else { exit 0 }"
+:: The path is read from $env:INPUT_FILE (-LiteralPath) rather than pasted into the command.
+powershell -NoProfile -Command "$headers = (Get-Content -LiteralPath $env:INPUT_FILE -TotalCount 1); if ($headers -match '^(?:""|)?href(?:""|)?\s*,\s*(?:""|)?hostname(?:""|)?\s*,\s*(?:""|)?TMP(?:""|)?$') { exit 2 } else { exit 0 }"
 if errorlevel 2 (
     echo ERROR: INPUT_FILE points to a generated stale VEN output CSV, not the original PCE workload export.
     echo        Detected header: href, hostname, TMP

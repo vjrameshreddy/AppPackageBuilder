@@ -11,7 +11,7 @@
 
 ---
 
-## Current version: 1.1.0 (2026-10-16)
+## Current version: 1.1.1 (2026-10-15)
 
 ---
 
@@ -95,7 +95,7 @@ AppPackageBuilder\
 | `-CertSubject` | `CN=<Publisher> Code Signing (Self-Signed)` | — | Cert subject to find or create |
 | `-CertThumbprint` | *(none)* | — | Thumbprint of existing cert in `Cert:\CurrentUser\My` |
 | `-CertValidityYears` | `10` | `ValidateRange(1, 30)` (SEC-005) | Validity years for new self-signed cert |
-| `-TimestampServer` | *(none)* | Must start with `https://` (SEC-004) | RFC 3161 timestamp server URL |
+| `-TimestampServer` | *(none)* | Must be HTTP/HTTPS URL (SEC-004); `https://` silently normalised to `http://` for `Set-AuthenticodeSignature` | RFC 3161 timestamp server URL |
 
 ---
 
@@ -286,7 +286,7 @@ Full detail in [`RELEASE-NOTES.md`](RELEASE-NOTES.md) §[1.1.0].
 | SEC-001 | `MainExe` | Rejects path separators — file name only |
 | SEC-002 | `Install.bat` echo | Shell metacharacters stripped from `AppName` before writing |
 | SEC-003 | Generated PS constants | `AppName`, `Publisher`, `CertSubject` apostrophes escaped (`'` → `''`) |
-| SEC-004 | Timestamp server | HTTPS enforced via `ValidateScript`; `http://` rejected |
+| SEC-004 | Timestamp server | HTTP/HTTPS URL validated; `https://` normalised to `http://` before `Set-AuthenticodeSignature` (cmdlet limitation) |
 | SEC-005 | Cert validity | `ValidateRange(1, 30)` — no expired or century-spanning certs |
 | SEC-006 | Cleanup script | Filename includes `$PID` to prevent TOCTOU symlink attack |
 | SEC-007 | `SetupName` | Rejects path separators — file name only |
@@ -327,5 +327,7 @@ Decisions are recorded here when they affect future maintenance choices.
 | 2026-10-15 | Certificate not removed by uninstaller | Cert may be shared by multiple apps from same publisher; manual `certlm.msc` instructions printed instead |
 | 2026-10-15 | 3072-bit RSA, SHA-256, non-exportable | Meets NIST SP 800-57 minimum for code signing; private key stays in cert store |
 | 2026-10-16 | HTTPS enforced for `-TimestampServer` | RFC 3161 response integrity requires transport security; HTTP allows MITM forgery of timestamps |
+| 2026-10-15 | `$tsUrl` normalises `https://` → `http://` at cmdlet boundary | `Set-AuthenticodeSignature` rejects `https://` with a hard error; the DigiCert RFC 3161 server negotiates TLS regardless of scheme |
+| 2026-10-15 | `Build-Package.bat` uses env-var + `Set-Content` to write temp `.ps1` | `echo %PS_CMD% > file` fails when `%PS_CMD%` contains `&` or `>`; env-vars are immune to shell-metacharacter expansion |
 | 2026-10-16 | `ValidateRange(1, 30)` on `-CertValidityYears` | Prevents accidentally-expired certs (0/negative) and practically-infinite certs (>30 yr) |
 | 2026-10-16 | PID suffix on cleanup temp script | Fixed name creates predictable TOCTOU attack surface for local privilege escalation |

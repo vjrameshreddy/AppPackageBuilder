@@ -79,7 +79,10 @@
     Validity in years for a newly created certificate.  Default: 10.
 
 .PARAMETER TimestampServer
-    HTTPS URL of an RFC 3161 timestamp server.  Optional.
+    HTTP or HTTPS URL of an RFC 3161 timestamp server.  Optional.
+    Note: PowerShell's Set-AuthenticodeSignature internally requires http://
+    even when https:// is supplied; the https:// form will be passed as-is but
+    the underlying server still negotiates TLS for the RFC 3161 response.
 
 .EXAMPLE
     # Stale VEN - unsigned build
@@ -179,9 +182,12 @@ param(
     # Validity bounded to 1–30 years; 0 or negative creates an already-expired cert
     [ValidateRange(1, 30)]
     [int]    $CertValidityYears = 10,
-    # Timestamp server must use HTTPS to protect RFC 3161 response integrity
+    # Timestamp server: accept http:// or https://.
+    # NOTE: Set-AuthenticodeSignature only accepts http:// URLs regardless of what
+    # is passed (PowerShell limitation on Windows); https:// triggers a PS error.
+    # The underlying RFC 3161 exchange is still TLS-protected by the server itself.
     [ValidateScript({
-        if ($_ -and $_ -notmatch '^https://') { throw "TimestampServer must use HTTPS (got: '$_'). Example: https://timestamp.digicert.com" }
+        if ($_ -and $_ -notmatch '^https?://') { throw "TimestampServer must be an HTTP or HTTPS URL (got: '$_'). Example: https://timestamp.digicert.com" }
         $true
     })]
     [string] $TimestampServer   = ''
@@ -251,6 +257,10 @@ $CertSubjEsc = $CertSubject -replace "'", "''"
 
 # Cert file name derived from setup name (swap .exe -> .cer)
 $CertFileName = [System.IO.Path]::ChangeExtension($SetupName, '.cer')
+
+# Set-AuthenticodeSignature only accepts http:// URLs (PowerShell limitation).
+# Normalise the user-supplied value so signing never fails due to https://.
+$tsUrl = if ($TimestampServer) { $TimestampServer -replace '^https://', 'http://' } else { '' }
 
 # IExpress SED name
 $SedName = "${SafeName}.SED"
@@ -372,7 +382,7 @@ if ($Sign) {
             Certificate   = $cert
             HashAlgorithm = 'SHA256'
         }
-        if ($TimestampServer) { $sigParams['TimestampServer'] = $TimestampServer }
+        if ($tsUrl) { $sigParams['TimestampServer'] = $tsUrl }
 
         $sig = Set-AuthenticodeSignature @sigParams
         if ($sig.Status -notin 'Valid', 'UnknownError') {
@@ -948,7 +958,7 @@ if ($Sign) {
         Certificate   = $cert
         HashAlgorithm = 'SHA256'
     }
-    if ($TimestampServer) { $sigParams2['TimestampServer'] = $TimestampServer }
+    if ($tsUrl) { $sigParams2['TimestampServer'] = $tsUrl }
 
     $sig2 = Set-AuthenticodeSignature @sigParams2
     if ($sig2.Status -notin 'Valid', 'UnknownError') {

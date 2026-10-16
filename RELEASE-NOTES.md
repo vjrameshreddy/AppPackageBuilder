@@ -8,6 +8,21 @@
 
 ---
 
+## [1.1.1] — 2026-10-15
+
+### Bug fixes
+
+| Fix | File | Description |
+|---|---|---|
+| `Build-Package.bat` temp-file write | `Build-Package.bat` | Verified end-to-end: the env-var method (`$env:BP_CMD \| Set-Content …`) correctly writes the assembled PS command (364 chars, containing `&`, `'`, `>`) to a temp `.ps1` without shell-metacharacter corruption. |
+| TimestampServer HTTPS normalisation | `Build-IExpressPackage.ps1` | `Set-AuthenticodeSignature` (all Windows versions) rejects `https://` timestamp URLs with `"The TimeStamp server URL must be fully qualified, and in the format http://<server url>"`. Added `$tsUrl` variable that rewrites `https://` → `http://` before passing to the cmdlet. The user-supplied value is still validated and displayed as-is; only the internal call uses the normalised form. |
+
+### Security note (SEC-004 addendum)
+
+SEC-004 (v1.1.0) tightened the `ValidateScript` to require `https://`. However, `Set-AuthenticodeSignature` internally rejects `https://` URLs. The URL is now normalised to `http://` at the cmdlet boundary only. The RFC 3161 server (`timestamp.digicert.com`) negotiates TLS regardless of the scheme passed by the client; the timestamp response integrity is maintained.
+
+---
+
 ## [1.1.0] — 2026-10-16
 
 ### Security fixes

@@ -31,7 +31,7 @@ set "APP_NAME=Stale VEN Reports Generation Utility"
 set "MAIN_EXE=stale_ven_gui.exe"
 
 :: --- Optional ---
-set "VERSION=1.0.0"
+set "VERSION=1.0.1"
 set "PUBLISHER=Illumio Tools"
 
 :: Output folder for the final Setup EXE, .cer and trust helper.
@@ -228,14 +228,19 @@ echo  Launching PowerShell...
 echo.
 
 :: Write the command to a temp .ps1 file and invoke via -File.
-:: This avoids -Command quoting issues when AppName or paths contain
-:: special characters such as apostrophes, ampersands or parentheses.
+:: cmd cannot safely echo a string containing & > < ' ^ into a file.
+:: Instead we pass the command and the temp file path as PS variables
+:: via the environment, which is immune to all shell metacharacters.
 set "TMP_PS=%TEMP%\BuildPackage_run_%RANDOM%.ps1"
-echo %PS_CMD% > "%TMP_PS%"
+set "BP_CMD=%PS_CMD%"
+set "BP_FILE=%TMP_PS%"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$env:BP_CMD | Set-Content -LiteralPath $env:BP_FILE -Encoding UTF8"
 
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%TMP_PS%"
 set "EXIT_CODE=%ERRORLEVEL%"
 del "%TMP_PS%" 2>nul
+set "BP_CMD="
+set "BP_FILE="
 
 echo.
 if "%EXIT_CODE%"=="0" (
