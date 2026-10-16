@@ -1,0 +1,6 @@
+﻿# Build output — generated at build time, never commit
+Package/
+
+# Loose test scripts that may appear during development
+test-*.ps1
+_*.ps1

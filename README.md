@@ -4,19 +4,86 @@ Turns any payload folder into a single, self-installing **IExpress Setup.exe** �
 
 ---
 
-## Repository layout
+## Setting up the repository
+
+To use this tooling for any app, you need exactly **four files** in the same folder plus a `Payload\` subfolder containing your application files.
+
+### Files to keep in source control
+
+```
+AppPackageBuilder\                          ← repo / working folder
+│
+│  ── Scripts (always required) ──
+├── Build-IExpressPackage.ps1               ✅ KEEP  Main builder script
+├── Build-Package.bat                       ✅ KEEP  Interactive launcher — edit the top section for each app
+│
+│  ── Documentation ──
+├── README.md                               ✅ KEEP  This file
+├── Build-IExpressPackage-Usage.md          ✅ KEEP  Full parameter reference and examples
+│
+│  ── Your application payload ──
+└── Payload\                                ✅ KEEP  Put ALL files for your app here
+    ├── stale_ven_gui.exe                   ← primary executable  (set as -MainExe)
+    ├── stale_ven_cli.exe                   ← additional exe
+    ├── run_stale_ven_cli.bat               ← batch launcher
+    └── stale_ven_docs_final.html           ← documentation / HTML help
+```
+
+> **Replace the `Payload\` contents** with your own application files.
+> The only rule: at least one `.exe` must be present (your `-MainExe`).
+
+### Files generated at build time — do NOT commit
+
+```
+AppPackageBuilder\
+└── Package\                                ⛔ GENERATED  excluded by .gitignore
+    │
+    ├── Build\                              ⛔ TEMP  Deleted automatically after each build
+    │   ├── Install.ps1                     │        Generated installer script
+    │   ├── Install.bat                     │        Generated IExpress wrapper
+    │   ├── Uninstall.ps1                   │        Generated uninstaller script
+    │   ├── Uninstall.bat                   │        Generated uninstaller launcher
+    │   ├── payload.zip                     │        Compressed payload (signed if -Sign)
+    │   ├── Staging\                        │        Signed copies of payload files
+    │   ├── <AppName>.SED                   │        IExpress project file
+    │   └── <AppName>_Setup.cer             │        (signed builds only)
+    │
+    └── Output\                             ⛔ DELIVERABLES  distribute these, don't commit
+        ├── <AppName>_Setup.exe             │        ← The Setup EXE to distribute
+        ├── <AppName>.SED                   │        SED copy kept for troubleshooting
+        ├── <AppName>_Setup.cer             │        (signed builds only) public certificate
+        └── Trust-Certificate.ps1           │        (signed builds only) cert import helper
+```
+
+### Minimum required structure before first build
+
+```
+AppPackageBuilder\
+├── Build-IExpressPackage.ps1    ← required
+├── Build-Package.bat            ← required (or call the .ps1 directly)
+└── Payload\
+    └── myapp.exe                ← at minimum, your main executable
+```
+
+That's it. Run `Build-Package.bat`, fill in the app name and exe name, pick a build type. The script creates everything else.
+
+---
+
+## Repository layout (full annotated tree)
 
 ```
 AppPackageBuilder\
 ├── Build-IExpressPackage.ps1      # Main builder script
 ├── Build-Package.bat              # Interactive launcher (edit config, pick build type)
 ├── Build-IExpressPackage-Usage.md # Full parameter reference and examples
+├── README.md                      # This file
+├── .gitignore                     # Excludes Package\ from source control
 ├── Payload\                       # Application files to package
 │   ├── stale_ven_gui.exe
 │   ├── stale_ven_cli.exe
 │   ├── run_stale_ven_cli.bat
 │   └── stale_ven_docs_final.html
-└── Package\                       # Created at build time — not in source control
+└── Package\                       # Created at build time — excluded by .gitignore
     ├── Build\                     # Temporary work files (auto-deleted after build)
     └── Output\                    # Final deliverables
         ├── <AppName>_Setup.exe
