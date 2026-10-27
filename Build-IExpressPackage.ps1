@@ -282,7 +282,12 @@ if (-not $payloadItems) { throw "PayloadDir '$PayloadDir' is empty." }
 
 $mainExeInPayload = Join-Path $PayloadDir $MainExe
 if (-not (Test-Path $mainExeInPayload -PathType Leaf)) {
-    throw "MainExe '$MainExe' not found inside PayloadDir '$PayloadDir'."
+    $foundExes = @(Get-ChildItem -Path $PayloadDir -Filter '*.exe' -File -ErrorAction SilentlyContinue |
+                   Select-Object -ExpandProperty Name)
+    $foundText = if ($foundExes.Count -gt 0) { $foundExes -join ', ' } else { '(none)' }
+    throw ("ERROR: Main executable '$MainExe' is missing from the payload folder '$PayloadDir'. " +
+           "Executables found there: $foundText. " +
+           "Check the -MainExe / -PayloadDir values (MAIN_EXE / PAYLOAD_DIR in Build-Package.bat).")
 }
 
 # ============================================================
@@ -685,8 +690,13 @@ $i.Add('    # ---- Step 6: Create Start Menu shortcuts ----')
 $i.Add('    New-Item -ItemType Directory -Path $StartMenuDir -Force | Out-Null')
 $i.Add('    $shell = New-Object -ComObject WScript.Shell')
 $i.Add('')
-$i.Add('    $shortcutTargets = Get-ChildItem -Path $InstallDir -Recurse |')
-$i.Add("        Where-Object { `$_.Extension -in '.exe', '.bat', '.html' }")
+$i.Add('    # .html files get a shortcut only when they sit in the install root; those in subdirectories are skipped.')
+$i.Add('    $installRoot = $InstallDir.TrimEnd([char]92, [char]47)')
+$i.Add('    $shortcutTargets = Get-ChildItem -Path $InstallDir -Recurse -File |')
+$i.Add("        Where-Object {")
+$i.Add("            `$_.Extension -in '.exe', '.bat' -or")
+$i.Add("            (`$_.Extension -eq '.html' -and `$_.DirectoryName.TrimEnd([char]92, [char]47) -eq `$installRoot)")
+$i.Add("        }")
 $i.Add('')
 $i.Add('    $usedNames = @{}')
 $i.Add('    foreach ($target in $shortcutTargets) {')

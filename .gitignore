@@ -1,6 +1,7 @@
 ﻿# Build output — generated at build time, never commit
 Package/
 Payload/
+Archives/
 
 # Loose test scripts that may appear during development
 test-*.ps1

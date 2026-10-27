@@ -24,15 +24,15 @@ set "PAYLOAD_DIR=.\Payload"
 
 :: Human-readable application name.
 :: Used for the Start Menu folder, Add/Remove Programs and the Setup EXE name.
-set "APP_NAME=Stale VEN Reports Generation Utility"
+set "APP_NAME=ServiceNow Monitoring Utility"
 
 :: File name (not path) of the primary executable inside PAYLOAD_DIR.
 :: Used for the Desktop shortcut and (with signing) the default signing target.
-set "MAIN_EXE=stale_ven_gui.exe"
+set "MAIN_EXE=ServiceNowMonitor.exe"
 
 :: --- Optional ---
-set "VERSION=1.0.1"
-set "PUBLISHER=Illumio Tools"
+set "VERSION=0.3.1"
+set "PUBLISHER=ServiceNow Tools"
 
 :: Output folder for the final Setup EXE, .cer and trust helper.
 :: Leave blank to use the default: <script dir>\Package\Output
@@ -50,7 +50,7 @@ set "KEEP_WORK_FILES=0"
 :: --- Signing ---
 :: Certificate subject for the self-signed cert that is created if none exists.
 :: Leave blank to use the default: CN=<PUBLISHER> Code Signing (Self-Signed)
-set "CERT_SUBJECT=CN=Illumio Tools Code Signing (Self-Signed)"
+set "CERT_SUBJECT=CN=ServiceNow Tools Code Signing (Self-Signed)"
 
 :: Validity in years for a newly created self-signed certificate.
 set "CERT_VALIDITY_YEARS=10"
@@ -223,6 +223,33 @@ goto RUN_BUILD
 ::  EXECUTE
 :: ============================================================
 :RUN_BUILD
+
+:: --- Pre-flight checks: fail early with a clear message ---
+if not exist "%PAYLOAD_DIR%\" (
+    echo.
+    echo  ERROR: Payload folder not found:
+    echo    %PAYLOAD_DIR%
+    echo  Fix PAYLOAD_DIR in the USER CONFIGURATION section of this file.
+    goto PREFLIGHT_FAILED
+)
+
+if not exist "%PAYLOAD_DIR%\%MAIN_EXE%" (
+    echo.
+    echo  ERROR: Main executable "%MAIN_EXE%" is missing from the payload folder:
+    echo    %PAYLOAD_DIR%
+    echo.
+    echo  Executables found in that folder:
+    set "EXE_FOUND=0"
+    for %%F in ("%PAYLOAD_DIR%\*.exe") do (
+        echo    %%~nxF
+        set "EXE_FOUND=1"
+    )
+    if "!EXE_FOUND!"=="0" echo    ^(none^)
+    echo.
+    echo  Fix MAIN_EXE or PAYLOAD_DIR in the USER CONFIGURATION section of this file.
+    goto PREFLIGHT_FAILED
+)
+
 echo.
 echo  Launching PowerShell...
 echo.
@@ -249,6 +276,14 @@ if "%EXIT_CODE%"=="0" (
     echo  Build failed with exit code %EXIT_CODE%.
     echo  Check the output above for details.
 )
+echo.
+pause
+goto MENU
+
+
+:PREFLIGHT_FAILED
+echo.
+echo  Build not started.
 echo.
 pause
 goto MENU
