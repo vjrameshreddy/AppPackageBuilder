@@ -24,15 +24,15 @@ set "PAYLOAD_DIR=.\Payload"
 
 :: Human-readable application name.
 :: Used for the Start Menu folder, Add/Remove Programs and the Setup EXE name.
-set "APP_NAME=MyApp"
+set "APP_NAME=Stale VEN Reports Generation Utility"
 
 :: File name (not path) of the primary executable inside PAYLOAD_DIR.
 :: Used for the Desktop shortcut and (with signing) the default signing target.
-set "MAIN_EXE=MyApp.exe"
+set "MAIN_EXE=stale_ven_gui.exe"
 
 :: --- Optional ---
-set "VERSION=0.3.1"
-set "PUBLISHER=MyApp"
+set "VERSION=1.0.1"
+set "PUBLISHER=Illumio Tools"
 
 :: Output folder for the final Setup EXE, .cer and trust helper.
 :: Leave blank to use the default: <script dir>\Package\Output
@@ -50,7 +50,7 @@ set "KEEP_WORK_FILES=0"
 :: --- Signing ---
 :: Certificate subject for the self-signed cert that is created if none exists.
 :: Leave blank to use the default: CN=<PUBLISHER> Code Signing (Self-Signed)
-set "CERT_SUBJECT=CN=MyApp Code Signing (Self-Signed)"
+set "CERT_SUBJECT=CN=Illumio Tools Code Signing (Self-Signed)"
 
 :: Validity in years for a newly created self-signed certificate.
 set "CERT_VALIDITY_YEARS=10"
