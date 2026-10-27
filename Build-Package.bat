@@ -50,7 +50,7 @@ set "KEEP_WORK_FILES=0"
 :: --- Signing ---
 :: Certificate subject for the self-signed cert that is created if none exists.
 :: Leave blank to use the default: CN=<PUBLISHER> Code Signing (Self-Signed)
-set "CERT_SUBJECT=CN=ServiceNow Tools Code Signing (Self-Signed)"
+set "CERT_SUBJECT=CN=MyApp Code Signing (Self-Signed)"
 
 :: Validity in years for a newly created self-signed certificate.
 set "CERT_VALIDITY_YEARS=10"
