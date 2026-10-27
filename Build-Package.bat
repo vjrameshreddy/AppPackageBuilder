@@ -24,15 +24,15 @@ set "PAYLOAD_DIR=.\Payload"
 
 :: Human-readable application name.
 :: Used for the Start Menu folder, Add/Remove Programs and the Setup EXE name.
-set "APP_NAME=ServiceNow Monitoring Utility"
+set "APP_NAME=MyApp"
 
 :: File name (not path) of the primary executable inside PAYLOAD_DIR.
 :: Used for the Desktop shortcut and (with signing) the default signing target.
-set "MAIN_EXE=ServiceNowMonitor.exe"
+set "MAIN_EXE=MyApp.exe"
 
 :: --- Optional ---
 set "VERSION=0.3.1"
-set "PUBLISHER=ServiceNow Tools"
+set "PUBLISHER=MyApp"
 
 :: Output folder for the final Setup EXE, .cer and trust helper.
 :: Leave blank to use the default: <script dir>\Package\Output
